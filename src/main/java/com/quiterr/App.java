@@ -5,17 +5,23 @@ import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.UserManagedCache;
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.ResourcePools;
+import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.builders.UserManagedCacheBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expirations;
 
 import java.io.File;
+import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 
@@ -27,7 +33,8 @@ public class App {
 //        TestEhcache();
 //        TestUserManagedCache();
 //        TestPersistent();
-        ByteSizedHeap();
+//        ByteSizedHeap();
+        UpdateResourcePools();
     }
 
     public static void TestEhcache(){
@@ -146,4 +153,34 @@ public class App {
 
     }
 
+    /**
+     * Update ResourcePools
+     */
+    public static void  UpdateResourcePools(){
+        CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+                .withCache("cache",
+                        newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.heap(10)))
+                .build();
+        cacheManager.init();
+
+        Cache<Long, String> cache =
+                cacheManager.getCache("cache", Long.class, String.class);
+
+        ResourcePools pools = ResourcePoolsBuilder.newResourcePoolsBuilder().heap(20L, EntryUnit.ENTRIES).build();
+        cache.getRuntimeConfiguration().updateResourcePools(pools);
+        assertThat(cache.getRuntimeConfiguration().getResourcePools()
+                .getPoolForResource(ResourceType.Core.HEAP).getSize(), is(20L));
+    }
+
+    /**
+     * Data freshness
+     */
+    public static void  DataFreshness(){
+
+        CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+                ResourcePoolsBuilder.heap(100))
+                .withExpiry(Expirations.timeToLiveExpiration(Duration.of(20, TimeUnit.SECONDS)))
+                .build();
+
+    }
 }
