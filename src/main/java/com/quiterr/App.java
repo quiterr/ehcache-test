@@ -34,7 +34,8 @@ public class App {
 //        TestUserManagedCache();
 //        TestPersistent();
 //        ByteSizedHeap();
-        UpdateResourcePools();
+//        UpdateResourcePools();
+        DataFreshness();
     }
 
     public static void TestEhcache(){
@@ -175,12 +176,23 @@ public class App {
     /**
      * Data freshness
      */
-    public static void  DataFreshness(){
+    public static void  DataFreshness() {
+
+        CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(true);
 
         CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.heap(100))
                 .withExpiry(Expirations.timeToLiveExpiration(Duration.of(20, TimeUnit.SECONDS)))
                 .build();
 
+        Cache<Long,String> cache = cacheManager.createCache("dataFreshness", cacheConfiguration);
+        cache.put(1L,"dataFreshness 1L");
+        System.out.println(cache.get(1L));
+        try {
+            Thread.sleep(20*1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        System.out.println(cache.get(1L));
     }
 }
